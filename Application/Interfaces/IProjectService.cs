@@ -8,4 +8,5 @@ public interface IProjectService
     Task<ProjectDto?> GetProjectByIdAsync(Guid id);
     Task<ProjectDto> CreateProjectAsync(CreateProjectDto createProjectDto);
     Task<bool> DeleteProjectAsync(Guid id);
+    Task<ProjectDto?> UpdateProjectAsync(Guid id, UpdateProjectDto updateProjectDto);
 }

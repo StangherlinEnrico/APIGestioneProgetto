@@ -22,4 +22,23 @@ public class Project
             ProjectStatusId = projectStatusId
         };
     }
+
+    public void UpdateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name cannot be empty", nameof(name));
+        Name = name;
+    }
+
+    public void UpdateDescription(string description)
+    {
+        Description = description ?? string.Empty;
+    }
+
+    public void UpdateStatus(Guid projectStatusId)
+    {
+        if (projectStatusId == Guid.Empty)
+            throw new ArgumentException("ProjectStatusId cannot be empty", nameof(projectStatusId));
+        ProjectStatusId = projectStatusId;
+    }
 }

@@ -45,4 +45,15 @@ public class ProjectStatusService : IProjectStatusService
 
         return await _projectStatusRepository.DeleteAsync(id);
     }
+
+    public async Task<ProjectStatusDto?> UpdateProjectStatusAsync(Guid id, UpdateProjectStatusDto updateProjectStatusDto)
+    {
+        var status = await _projectStatusRepository.GetByIdAsync(id);
+        if (status is null) return null;
+
+        status.UpdateName(updateProjectStatusDto.Name);
+
+        var updated = await _projectStatusRepository.UpdateAsync(status);
+        return new ProjectStatusDto(updated.Id, updated.Name);
+    }
 }

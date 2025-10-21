@@ -66,4 +66,17 @@ public class ProjectStatusesController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectStatusDto updateProjectStatusDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updated = await _projectStatusService.UpdateProjectStatusAsync(id, updateProjectStatusDto);
+        if (updated is null)
+            return NotFound();
+
+        return Ok(updated);
+    }
 }

@@ -64,4 +64,30 @@ public class ProjectService : IProjectService
     {
         return await _projectRepository.DeleteAsync(id);
     }
+
+    public async Task<ProjectDto?> UpdateProjectAsync(Guid id, UpdateProjectDto updateProjectDto)
+    {
+        var project = await _projectRepository.GetByIdAsync(id);
+        if (project is null) return null;
+
+        if (!string.IsNullOrWhiteSpace(updateProjectDto.Name))
+            project.UpdateName(updateProjectDto.Name);
+
+        if (updateProjectDto.Description is not null)
+            project.UpdateDescription(updateProjectDto.Description);
+
+        if (updateProjectDto.ProjectStatusId.HasValue)
+            project.UpdateStatus(updateProjectDto.ProjectStatusId.Value);
+
+        var updated = await _projectRepository.UpdateAsync(project);
+
+        var refreshed = await _projectRepository.GetByIdAsync(updated.Id);
+        return new ProjectDto(
+            refreshed!.Id,
+            refreshed.Name,
+            refreshed.Description,
+            refreshed.CreatedAt,
+            new ProjectStatusDto(refreshed.ProjectStatus.Id, refreshed.ProjectStatus.Name)
+        );
+    }
 }

@@ -55,4 +55,11 @@ public class ProjectStatusRepository : IProjectStatusRepository
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<ProjectStatus> UpdateAsync(ProjectStatus projectStatus)
+    {
+        _context.ProjectStatuses.Update(projectStatus);
+        await _context.SaveChangesAsync();
+        return projectStatus;
+    }
 }

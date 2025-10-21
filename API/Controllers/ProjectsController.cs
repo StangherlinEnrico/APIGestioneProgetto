@@ -68,4 +68,27 @@ public class ProjectsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectDto updateProjectDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (updateProjectDto.ProjectStatusId.HasValue)
+        {
+            var statusExists = await _projectStatusService.GetProjectStatusByIdAsync(updateProjectDto.ProjectStatusId.Value);
+            if (statusExists is null)
+            {
+                ModelState.AddModelError("ProjectStatusId", $"ProjectStatus with Id {updateProjectDto.ProjectStatusId.Value} does not exist");
+                return BadRequest(ModelState);
+            }
+        }
+
+        var updated = await _projectService.UpdateProjectAsync(id, updateProjectDto);
+        if (updated is null)
+            return NotFound();
+
+        return Ok(updated);
+    }
 }

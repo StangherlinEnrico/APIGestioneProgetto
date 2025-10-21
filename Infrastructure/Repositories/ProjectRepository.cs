@@ -55,4 +55,11 @@ public class ProjectRepository : IProjectRepository
     {
         return await _context.Projects.AnyAsync(p => p.ProjectStatusId == statusId);
     }
+
+    public async Task<Project> UpdateAsync(Project project)
+    {
+        _context.Projects.Update(project);
+        await _context.SaveChangesAsync();
+        return project;
+    }
 }
