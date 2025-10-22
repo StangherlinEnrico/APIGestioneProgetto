@@ -5,55 +5,52 @@ using Domain.Interfaces;
 
 namespace Application.Services;
 
-public class ProjectStatusService : IProjectStatusService
+public class ProjectStatusService(
+    IProjectStatusRepository projectStatusRepository,
+    IProjectRepository projectRepository) : IProjectStatusService
 {
-    private readonly IProjectStatusRepository _projectStatusRepository;
-    private readonly IProjectRepository _projectRepository;
-
-    public ProjectStatusService(IProjectStatusRepository projectStatusRepository, IProjectRepository projectRepository)
+    public async Task<ProjectStatusDto> CreateProjectStatusAsync(CreateProjectStatusDto createProjectStatusDto)
     {
-        _projectStatusRepository = projectStatusRepository;
-        _projectRepository = projectRepository;
+        var projectStatus = ProjectStatus.Create(createProjectStatusDto.Name, createProjectStatusDto.Priority);
+        var createdStatus = await projectStatusRepository.AddAsync(projectStatus);
+        return new ProjectStatusDto(createdStatus.Id, createdStatus.Name, createdStatus.Priority);
     }
 
     public async Task<IEnumerable<ProjectStatusDto>> GetAllProjectStatusesAsync()
     {
-        var statuses = await _projectStatusRepository.GetAllAsync();
-        return statuses.Select(s => new ProjectStatusDto(s.Id, s.Name));
+        var statuses = await projectStatusRepository.GetAllAsync();
+        return statuses.Select(s => new ProjectStatusDto(s.Id, s.Name, s.Priority));
     }
 
     public async Task<ProjectStatusDto?> GetProjectStatusByIdAsync(Guid id)
     {
-        var status = await _projectStatusRepository.GetByIdAsync(id);
-        return status is null ? null : new ProjectStatusDto(status.Id, status.Name);
+        var status = await projectStatusRepository.GetByIdAsync(id);
+        return status is null ? null : new ProjectStatusDto(status.Id, status.Name, status.Priority);
     }
 
-    public async Task<ProjectStatusDto> CreateProjectStatusAsync(CreateProjectStatusDto createProjectStatusDto)
+    public async Task<ProjectStatusDto?> UpdateProjectStatusAsync(Guid id, UpdateProjectStatusDto updateProjectStatusDto)
     {
-        var projectStatus = ProjectStatus.Create(createProjectStatusDto.Name);
-        var createdStatus = await _projectStatusRepository.AddAsync(projectStatus);
-        return new ProjectStatusDto(createdStatus.Id, createdStatus.Name);
+        var status = await projectStatusRepository.GetByIdAsync(id);
+        if (status is null) return null;
+
+        if (!string.IsNullOrWhiteSpace(updateProjectStatusDto.Name))
+            status.UpdateName(updateProjectStatusDto.Name);
+
+        if (updateProjectStatusDto.Priority.HasValue)
+            status.UpdatePriority(updateProjectStatusDto.Priority.Value);
+
+        var updated = await projectStatusRepository.UpdateAsync(status);
+        return new ProjectStatusDto(updated.Id, updated.Name, updated.Priority);
     }
 
     public async Task<bool> DeleteProjectStatusAsync(Guid id)
     {
-        var hasProjects = await _projectRepository.ExistsByStatusIdAsync(id);
+        var hasProjects = await projectRepository.ExistsByStatusIdAsync(id);
         if (hasProjects)
         {
             throw new InvalidOperationException($"Cannot delete ProjectStatus with Id {id} because it is associated with one or more projects");
         }
 
-        return await _projectStatusRepository.DeleteAsync(id);
-    }
-
-    public async Task<ProjectStatusDto?> UpdateProjectStatusAsync(Guid id, UpdateProjectStatusDto updateProjectStatusDto)
-    {
-        var status = await _projectStatusRepository.GetByIdAsync(id);
-        if (status is null) return null;
-
-        status.UpdateName(updateProjectStatusDto.Name);
-
-        var updated = await _projectStatusRepository.UpdateAsync(status);
-        return new ProjectStatusDto(updated.Id, updated.Name);
+        return await projectStatusRepository.DeleteAsync(id);
     }
 }

@@ -5,41 +5,8 @@ using Domain.Interfaces;
 
 namespace Application.Services;
 
-public class ProjectService : IProjectService
+public class ProjectService(IProjectRepository projectRepository) : IProjectService
 {
-    private readonly IProjectRepository _projectRepository;
-
-    public ProjectService(IProjectRepository projectRepository)
-    {
-        _projectRepository = projectRepository;
-    }
-
-    public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
-    {
-        var projects = await _projectRepository.GetAllAsync();
-        return projects.Select(p => new ProjectDto(
-            p.Id,
-            p.Name,
-            p.Description,
-            p.CreatedAt,
-            new ProjectStatusDto(p.ProjectStatus.Id, p.ProjectStatus.Name)
-        ));
-    }
-
-    public async Task<ProjectDto?> GetProjectByIdAsync(Guid id)
-    {
-        var project = await _projectRepository.GetByIdAsync(id);
-        return project is null
-            ? null
-            : new ProjectDto(
-                project.Id,
-                project.Name,
-                project.Description,
-                project.CreatedAt,
-                new ProjectStatusDto(project.ProjectStatus.Id, project.ProjectStatus.Name)
-            );
-    }
-
     public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto createProjectDto)
     {
         var project = Project.Create(
@@ -48,26 +15,55 @@ public class ProjectService : IProjectService
             createProjectDto.ProjectStatusId
         );
 
-        var createdProject = await _projectRepository.AddAsync(project);
-        var projectWithStatus = await _projectRepository.GetByIdAsync(createdProject.Id);
+        var createdProject = await projectRepository.AddAsync(project);
+        var projectWithStatus = await projectRepository.GetByIdAsync(createdProject.Id);
 
         return new ProjectDto(
             projectWithStatus!.Id,
             projectWithStatus.Name,
             projectWithStatus.Description,
             projectWithStatus.CreatedAt,
-            new ProjectStatusDto(projectWithStatus.ProjectStatus.Id, projectWithStatus.ProjectStatus.Name)
+            new ProjectStatusDto(
+                projectWithStatus.ProjectStatus.Id,
+                projectWithStatus.ProjectStatus.Name,
+                projectWithStatus.ProjectStatus.Priority)
         );
+    }
+
+    public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
+    {
+        var projects = await projectRepository.GetAllAsync();
+        return projects.Select(p => new ProjectDto(
+            p.Id,
+            p.Name,
+            p.Description,
+            p.CreatedAt,
+            new ProjectStatusDto(p.ProjectStatus.Id, p.ProjectStatus.Name, p.ProjectStatus.Priority)
+        ));
+    }
+
+    public async Task<ProjectDto?> GetProjectByIdAsync(Guid id)
+    {
+        var project = await projectRepository.GetByIdAsync(id);
+        return project is null
+            ? null
+            : new ProjectDto(
+                project.Id,
+                project.Name,
+                project.Description,
+                project.CreatedAt,
+                new ProjectStatusDto(project.ProjectStatus.Id, project.ProjectStatus.Name, project.ProjectStatus.Priority)
+            );
     }
 
     public async Task<bool> DeleteProjectAsync(Guid id)
     {
-        return await _projectRepository.DeleteAsync(id);
+        return await projectRepository.DeleteAsync(id);
     }
 
     public async Task<ProjectDto?> UpdateProjectAsync(Guid id, UpdateProjectDto updateProjectDto)
     {
-        var project = await _projectRepository.GetByIdAsync(id);
+        var project = await projectRepository.GetByIdAsync(id);
         if (project is null) return null;
 
         if (!string.IsNullOrWhiteSpace(updateProjectDto.Name))
@@ -79,15 +75,15 @@ public class ProjectService : IProjectService
         if (updateProjectDto.ProjectStatusId.HasValue)
             project.UpdateStatus(updateProjectDto.ProjectStatusId.Value);
 
-        var updated = await _projectRepository.UpdateAsync(project);
+        var updated = await projectRepository.UpdateAsync(project);
 
-        var refreshed = await _projectRepository.GetByIdAsync(updated.Id);
+        var refreshed = await projectRepository.GetByIdAsync(updated.Id);
         return new ProjectDto(
             refreshed!.Id,
             refreshed.Name,
             refreshed.Description,
             refreshed.CreatedAt,
-            new ProjectStatusDto(refreshed.ProjectStatus.Id, refreshed.ProjectStatus.Name)
+            new ProjectStatusDto(refreshed.ProjectStatus.Id, refreshed.ProjectStatus.Name, refreshed.ProjectStatus.Priority)
         );
     }
 }

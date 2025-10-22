@@ -20,6 +20,9 @@ public class ProjectStatusConfiguration : IEntityTypeConfiguration<ProjectStatus
             .IsRequired()
             .HasMaxLength(50);
 
+        builder.Property(ps => ps.Priority)
+            .IsRequired();
+
         builder.HasIndex(ps => ps.Name)
             .IsUnique();
     }
