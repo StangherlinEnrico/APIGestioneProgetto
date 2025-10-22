@@ -66,7 +66,7 @@ public class ProjectsController : ControllerBase
             return NotFound();
         }
 
-        return NoContent();
+        return Ok(new { message = "Project deleted successfully", id });
     }
 
     [HttpPatch("{id:guid}")]

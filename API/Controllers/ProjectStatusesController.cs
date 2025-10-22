@@ -59,7 +59,7 @@ public class ProjectStatusesController : ControllerBase
                 return NotFound();
             }
 
-            return NoContent();
+            return Ok(new { message = "ProjectStatus deleted successfully", id });
         }
         catch (InvalidOperationException ex)
         {
