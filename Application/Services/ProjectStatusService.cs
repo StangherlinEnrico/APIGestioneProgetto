@@ -11,6 +11,19 @@ public class ProjectStatusService(
 {
     public async Task<ProjectStatusDto> CreateProjectStatusAsync(CreateProjectStatusDto createProjectStatusDto)
     {
+        var allStatuses = (await projectStatusRepository.GetAllAsync()).ToList();
+
+        var statusesAtOrAfter = allStatuses
+            .Where(s => s.Priority >= createProjectStatusDto.Priority)
+            .OrderBy(s => s.Priority)
+            .ToList();
+
+        foreach (var status in statusesAtOrAfter)
+        {
+            status.UpdatePriority(status.Priority + 1);
+            await projectStatusRepository.UpdateAsync(status);
+        }
+
         var projectStatus = ProjectStatus.Create(createProjectStatusDto.Name, createProjectStatusDto.Priority);
         var createdStatus = await projectStatusRepository.AddAsync(projectStatus);
         return new ProjectStatusDto(createdStatus.Id, createdStatus.Name, createdStatus.Priority);
@@ -51,6 +64,27 @@ public class ProjectStatusService(
             throw new InvalidOperationException($"Cannot delete ProjectStatus with Id {id} because it is associated with one or more projects");
         }
 
-        return await projectStatusRepository.DeleteAsync(id);
+        var statusToDelete = await projectStatusRepository.GetByIdAsync(id);
+        if (statusToDelete is null) return false;
+
+        var deletedPriority = statusToDelete.Priority;
+        var deleted = await projectStatusRepository.DeleteAsync(id);
+
+        if (deleted)
+        {
+            var allStatuses = (await projectStatusRepository.GetAllAsync()).ToList();
+            var statusesAfter = allStatuses
+                .Where(s => s.Priority > deletedPriority)
+                .OrderBy(s => s.Priority)
+                .ToList();
+
+            foreach (var status in statusesAfter)
+            {
+                status.UpdatePriority(status.Priority - 1);
+                await projectStatusRepository.UpdateAsync(status);
+            }
+        }
+
+        return deleted;
     }
 }
