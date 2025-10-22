@@ -50,7 +50,44 @@ public class ProjectStatusService(
             status.UpdateName(updateProjectStatusDto.Name);
 
         if (updateProjectStatusDto.Priority.HasValue)
-            status.UpdatePriority(updateProjectStatusDto.Priority.Value);
+        {
+            var oldPriority = status.Priority;
+            var newPriority = updateProjectStatusDto.Priority.Value;
+
+            if (oldPriority != newPriority)
+            {
+                var allStatuses = (await projectStatusRepository.GetAllAsync()).ToList();
+
+                if (newPriority < oldPriority)
+                {
+                    var statusesToShift = allStatuses
+                        .Where(s => s.Id != id && s.Priority >= newPriority && s.Priority < oldPriority)
+                        .OrderBy(s => s.Priority)
+                        .ToList();
+
+                    foreach (var statusToShift in statusesToShift)
+                    {
+                        statusToShift.UpdatePriority(statusToShift.Priority + 1);
+                        await projectStatusRepository.UpdateAsync(statusToShift);
+                    }
+                }
+                else
+                {
+                    var statusesToShift = allStatuses
+                        .Where(s => s.Id != id && s.Priority > oldPriority && s.Priority <= newPriority)
+                        .OrderByDescending(s => s.Priority)
+                        .ToList();
+
+                    foreach (var statusToShift in statusesToShift)
+                    {
+                        statusToShift.UpdatePriority(statusToShift.Priority - 1);
+                        await projectStatusRepository.UpdateAsync(statusToShift);
+                    }
+                }
+
+                status.UpdatePriority(newPriority);
+            }
+        }
 
         var updated = await projectStatusRepository.UpdateAsync(status);
         return new ProjectStatusDto(updated.Id, updated.Name, updated.Priority);
